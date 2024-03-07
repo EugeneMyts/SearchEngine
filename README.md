@@ -23,6 +23,40 @@ Open Source: This project is open source under the MIT License, encouraging cont
 
 --------------------------------------------------------------------------------------------------------------------------------------------------
 
+Stack of Technologies
+
+Java: Programming language for developing all components of the search engine.
+Git: Version control system for managing project versions and hosting the repository.
+GitHub: Platform for hosting and collaborative work on the project.
+HTML Parsing Libraries: Libraries for parsing HTML code of pages and extracting information.
+Indexing Tools: Used for creating an index from the gathered information and providing fast access to search results.
+JUnit: For testing various components of the search engine
+JS
+Spring Framework
+
+--------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+Instructions for Local Setup
+
+git clone 
+
+https://github.com/EugeneMyts/SearchEngine.git
+
+Compile the Java code:
+
+javac *.java
+
+Run the search engine:
+
+java SearchEngine
+
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
 License
 
 Search Engine is licensed under the MIT License, allowing users to use, modify, and distribute the software freely. The MIT License promotes collaboration and ensures that the project remains open and accessible to all.
