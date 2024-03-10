@@ -1,8 +1,7 @@
-package searchengine.Helper;
+package searchengine.helper;
 
 import org.apache.lucene.morphology.WrongCharaterException;
 import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
-import org.apache.lucene.morphology.russian.RussianMorphology;
 import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Component;
 import org.jsoup.Jsoup;
@@ -193,7 +192,7 @@ public class TextProcessor {
 
     private Integer getIndexOfWordInArray(String[] textLemmasSplit, String firstLemma) {
         int index = -1;
-        for (int i = 0; i > textLemmasSplit.length; i++) {
+        for (int i = 0; i < textLemmasSplit.length; i++) {
             if (textLemmasSplit[i].contains(firstLemma)) {
                 index = i;
                 break;

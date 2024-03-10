@@ -1,4 +1,4 @@
-package searchengine.Helper;
+package searchengine.helper;
 
 import org.jsoup.Connection;
 import org.jsoup.HttpStatusException;
@@ -6,10 +6,10 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import searchengine.Repository.IndexRepository;
-import searchengine.Repository.LemmaRepository;
-import searchengine.Repository.PageRepository;
-import searchengine.Repository.SiteRepository;
+import searchengine.repository.IndexRepository;
+import searchengine.repository.LemmaRepository;
+import searchengine.repository.PageRepository;
+import searchengine.repository.SiteRepository;
 import searchengine.model.Index;
 import searchengine.model.Lemma;
 import searchengine.model.Page;

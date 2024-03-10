@@ -2,9 +2,9 @@ package searchengine.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import searchengine.Helper.TextProcessor;
-import searchengine.Repository.IndexRepository;
-import searchengine.Repository.LemmaRepository;
+import searchengine.helper.TextProcessor;
+import searchengine.repository.IndexRepository;
+import searchengine.repository.LemmaRepository;
 import searchengine.model.*;
 
 import java.util.*;
