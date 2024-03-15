@@ -1,8 +1,6 @@
 package searchengine.services;
 
-import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import searchengine.helper.PageExtractor;
 import searchengine.helper.TextProcessor;
@@ -25,24 +23,33 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 
 @Service
-@RequiredArgsConstructor
 public class IndexingServiceImpl implements IndexingService {
     private static final Logger LOGGER = LogManager.getLogger(IndexingServiceImpl.class);
     private static final int TERMINATION_AWAIT_TIME_HOURS = 24;
     public static volatile boolean inProgress;
     private static volatile boolean isStopped = false;
     private final SitesList sites;
-    @Autowired
-    private SiteRepository siteRepository;
-    @Autowired
-    private PageRepository pageRepository;
-    @Autowired
-    private LemmaRepository lemmaRepository;
-    @Autowired
-    private IndexRepository indexRepository;
-    @Autowired
-    private TextProcessor textProcessor;
+    private final SiteRepository siteRepository;
+    private final PageRepository pageRepository;
+    private final LemmaRepository lemmaRepository;
+    private final IndexRepository indexRepository;
+    private final TextProcessor textProcessor;
     private ForkJoinPool pool;
+
+    public IndexingServiceImpl(SitesList sites,
+                               SiteRepository siteRepository,
+                               PageRepository pageRepository,
+                               LemmaRepository lemmaRepository,
+                               IndexRepository indexRepository,
+                               TextProcessor textProcessor) {
+        this.sites = sites;
+        this.siteRepository = siteRepository;
+        this.pageRepository = pageRepository;
+        this.lemmaRepository = lemmaRepository;
+        this.indexRepository = indexRepository;
+        this.textProcessor = textProcessor;
+
+    }
 
     @Override
     public RequestAnswer startIndexing() {
@@ -56,42 +63,48 @@ public class IndexingServiceImpl implements IndexingService {
         }
     }
 
-    private RequestAnswer parseSites() {
+    private void parseSites() {
         for (Site site : sites.getSites()) {
-            siteRepository.deleteByUrl(site.getUrl());
-        }
-
-        for (Site site : sites.getSites()) {
-            site.setStatus(Status.INDEXING);
-            site.setStatusTime(LocalDateTime.now());
-            Site siteSaved = siteRepository.save(site);
-
-            List<String> controlList = new ArrayList<>();
-            controlList = Collections.synchronizedList(controlList);
-            controlList.add(site.getUrl());
-
-            PageExtractor parser = new PageExtractor(site.getUrl(), controlList, siteSaved,
-                    pageRepository, siteRepository, lemmaRepository, indexRepository, textProcessor);
-            pool = new ForkJoinPool();
-            pool.execute(parser);
-            pool.shutdown();
-
-            awaitPoolTermination();
-
-            if (isStopped) {
-                isStopped = false;
-                return new RequestAnswer(false, "Indexing stopped by user");
-            }
-
-            siteSaved.setStatus(Status.INDEXED);
-            siteSaved.setStatusTime(LocalDateTime.now());
-            siteRepository.save(siteSaved);
+            deleteSiteByUrl(site.getUrl());
+            indexSite(site);
         }
 
         System.out.println("Parsing complete");
 
         inProgress = false;
-        return new RequestAnswer(true);
+    }
+
+    private void deleteSiteByUrl(String url) {
+        siteRepository.deleteByUrl(url);
+    }
+
+    private void indexSite(Site site) {
+
+        site.setStatus(Status.INDEXING);
+        site.setStatusTime(LocalDateTime.now());
+        Site siteSaved = siteRepository.save(site);
+
+        List<String> controlList = new ArrayList<>();
+        controlList = Collections.synchronizedList(controlList);
+        controlList.add(site.getUrl());
+
+        PageExtractor parser = new PageExtractor(site.getUrl(), controlList, siteSaved,
+                pageRepository, siteRepository, lemmaRepository, indexRepository, textProcessor);
+        pool = new ForkJoinPool();
+        pool.execute(parser);
+        pool.shutdown();
+
+        awaitPoolTermination();
+
+        if (isStopped) {
+            isStopped = false;
+            new RequestAnswer(false, "Indexing stopped by user");
+            return;
+        }
+
+        siteSaved.setStatus(Status.INDEXED);
+        siteSaved.setStatusTime(LocalDateTime.now());
+        siteRepository.save(siteSaved);
     }
 
     private void awaitPoolTermination() {

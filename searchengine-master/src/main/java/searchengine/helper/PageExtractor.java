@@ -39,7 +39,7 @@ public class PageExtractor extends RecursiveAction {
     private final IndexRepository indexRepository;
     private final TextProcessor textProcessor;
 
-    private Connection connection;
+    private  Connection connection;
 
     public PageExtractor(String url,
                                List<String> controlList,
@@ -65,6 +65,15 @@ public class PageExtractor extends RecursiveAction {
         if(!IndexingServiceImpl.inProgress) {
             return;
         }
+        processPage();
+
+        if (!IndexingServiceImpl.inProgress || page.getCode() != 200 || page.getContent() == null) {
+            return;
+        }
+        extractLinks();
+    }
+
+    private void processPage() {
 
         page.setSiteId(site);
         String pageUrl = getPageUrl();
@@ -76,36 +85,38 @@ public class PageExtractor extends RecursiveAction {
         pageRepository.save(page);
 
         if (pageAsDocument != null) {
-            Map<String, Integer> lemmas = textProcessor.countLemmas(pageAsDocument.toString());
-            lemmas.forEach((value, rate) -> {
-                Lemma lemma = new Lemma();
-                lemma.setLemma(value);
-                lemma.setSiteId(site);
-                lemma = addLemmaToDB(lemma);
-                createOrUpdateIndexForLemma(lemma, page, rate);
-            });
+            processLemmas(pageAsDocument);
         }
 
         updateSiteStatusTime();
 
-        if(!IndexingServiceImpl.inProgress) {
-            return;
-        }
-
-        if (statusCode != 200 || pageAsDocument == null) {
-            return;
-        }
-
-        Elements linkElements = pageAsDocument.select("a");
-        HashSet<String> validLinks = validateLinks(linkElements);
-
-        for (String link : validLinks) {
-            controlList.add(link);
-            PageExtractor task = new PageExtractor(link, controlList, site,
-                    pageRepository, siteRepository, lemmaRepository, indexRepository, textProcessor);
-            task.fork();
-        }
     }
+
+    private void processLemmas(Document pageAsDocument) {
+        Map<String, Integer> lemmas = textProcessor.countLemmas(pageAsDocument.toString());
+        lemmas.forEach((value, rate) -> {
+            Lemma lemma = new Lemma();
+            lemma.setLemma(value);
+            lemma.setSiteId(site);
+            lemma = addLemmaToDB(lemma);
+            createOrUpdateIndexForLemma(lemma, page, rate);
+        });
+    }
+
+private void extractLinks() {
+        Document pageAsDocument = getPageAsDocument();
+        Elements linkElements = pageAsDocument.select("a");
+    HashSet<String> validLinks = validateLinks(linkElements);
+
+    for (String link : validLinks) {
+        controlList.add(link);
+        PageExtractor task = new PageExtractor(link, controlList, site,
+                pageRepository, siteRepository, lemmaRepository, indexRepository, textProcessor);
+        task.fork();
+    }
+
+}
+
 
     private void createOrUpdateIndexForLemma(Lemma lemma, Page page, int rate) {
         Index index = new Index();
@@ -119,14 +130,16 @@ public class PageExtractor extends RecursiveAction {
     private Lemma addLemmaToDB(Lemma lemma) {
         List<Lemma> lemmaList = lemmaRepository.findByLemma(lemma.getLemma());
 
-        if (lemmaList.size() == 0) {
+        if (lemmaList.isEmpty()) {
             lemma.setFrequency(1);
-            return lemmaRepository.save(lemma);
+
         } else {
             Lemma lemmaFromDb = lemmaList.get(0);
             lemmaFromDb.setFrequency(lemmaFromDb.getFrequency() + 1);
-            return lemmaRepository.save(lemmaFromDb);
+            lemma = lemmaFromDb;
         }
+
+        return lemmaRepository.save(lemma);
     }
 
     private String getPageUrl() {
@@ -183,24 +196,13 @@ public class PageExtractor extends RecursiveAction {
                 continue;
             }
 
-
             String httpSVar = url.split("://", 2)[0];
-            if (!href.startsWith(httpSVar)) {
-                continue;
-            } else if (controlList.contains(href)) {
-                continue;
-            }
-
-            if (href.split("/").length <= url.split("/").length) {
+            if (!href.startsWith(httpSVar) || controlList.contains(href) ||
+                    href.split("/").length <= url.split("/").length
+                    || href.endsWith(".jpg")) {
                 continue;
             }
 
-            if (href.endsWith(".jpg")) {
-                continue;
-            }
-
-
-            // Then check if this link is internal service
             boolean linkIsExternal = false;
             boolean linkIsInnerService = false;
             String[] split = href.split("/");

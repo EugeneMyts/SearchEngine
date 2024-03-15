@@ -26,9 +26,6 @@ public class StatisticsServiceImpl implements StatisticsService {
     private final PageRepository pageRepository;
     private final LemmaRepository lemmaRepository;
 
-    private final Random random = new Random();
-    private final SitesList sites;
-
     @Override
     public StatisticsResponse getStatistics() {
 
